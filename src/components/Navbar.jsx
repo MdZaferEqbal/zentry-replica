@@ -4,17 +4,35 @@ import { useRef } from "react";
 import { useWindowScroll } from "react-use";
 import { TiLocationArrow } from "react-icons/ti";
 import React, { useEffect, useState } from "react";
+import { AnimatePresence } from "motion/react";
+import * as motion from "motion/react-client";
+import { FaVolumeUp } from "react-icons/fa";
 
-const navItems = ["Nexus", "Vault", "Prologue", "About", "Contact"];
+const navItems = [
+  { name: "Nexus", disabled: true },
+  { name: "Vault", disabled: true },
+  { name: "About", disabled: false },
+  { name: "Prologue", disabled: false },
+  { name: "Contact", disabled: false },
+];
 
 const Navbar = () => {
   const navbarRef = useRef(null);
   const audioRef = useRef(null);
+  const hoverAudioRef = useRef(null);
+  const selectAudioRef = useRef(null);
+  const navigatingAudioRef = useRef(null);
 
   const [audioPlaying, setAudioPlaying] = useState(false);
   const [indicatorActive, setIndicatorActive] = useState(false);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [navVisibility, setNavVisibility] = useState(true);
+  const [audioControlToolTipVisibility, setAudioControlToolTipVisibility] =
+    useState(true);
+
+  setTimeout(() => {
+    setAudioControlToolTipVisibility(false);
+  }, 3000);
 
   const { y: currentScrollY } = useWindowScroll();
 
@@ -54,6 +72,30 @@ const Navbar = () => {
     }
   }, [audioPlaying]);
 
+  const handleNavItemClick = () => {
+    hoverAudioRef.current.volume = 0.5;
+    selectAudioRef.current.volume = 0.5;
+    navigatingAudioRef.current.volume = 0.5;
+
+    if (audioPlaying) {
+      selectAudioRef.current.currentTime = 0;
+      selectAudioRef.current.play();
+      navigatingAudioRef.current.currentTime = 0;
+      navigatingAudioRef.current.play();
+    }
+  };
+
+  const handleMouseEnter = () => {
+    hoverAudioRef.current.volume = 0.5;
+    selectAudioRef.current.volume = 0.5;
+    navigatingAudioRef.current.volume = 0.5;
+
+    if (audioPlaying) {
+      hoverAudioRef.current.currentTime = 0;
+      hoverAudioRef.current.play().catch(() => {});
+    }
+  };
+
   return (
     <div
       ref={navbarRef}
@@ -62,7 +104,12 @@ const Navbar = () => {
       <header className="absolute top-1/2 w-full -translate-y-1/2">
         <nav className="flex size-full items-center justify-between p-4">
           <div className="flex items-center gap-7">
-            <a className="cursor-pointer" href="#">
+            <a
+              className="cursor-pointer"
+              href="#"
+              onClick={handleNavItemClick}
+              onMouseEnter={handleMouseEnter}
+            >
               <img src="/zentry-logo.png" alt="logo" className="w-10 " />
             </a>
             <Button
@@ -78,15 +125,21 @@ const Navbar = () => {
               {navItems.map((item, key) => (
                 <a
                   key={key}
-                  href={`#${item.toLowerCase()}`}
-                  className="nav-hover-btn relative ms-10 font-general text-xs uppercase text-blue-50 after:absolute after:-bottom-0.5 after:left-0 after:h-[2px] after:w-full after:origin-bottom-right after:scale-x-0 after:bg-neutral-800 after:transition-transform after:duration-300 after:ease-in-out hover:after:origin-bottom-left hover:after:scale-x-100 dark:after:bg-white cursor-pointer"
+                  href={item.disabled ? null : `#${item.name.toLowerCase()}`}
+                  className={`nav-hover-btn relative ms-10 font-general text-xs uppercase ${
+                    item.disabled
+                      ? "text-gray-600"
+                      : "text-blue-50 after:absolute"
+                  }  after:-bottom-0.5 after:left-0 after:h-[2px] after:w-full after:origin-bottom-right after:scale-x-0 after:bg-neutral-800 after:transition-transform after:duration-300 after:ease-in-out hover:after:origin-bottom-left hover:after:scale-x-100 dark:after:bg-white cursor-pointer`}
+                  onClick={item.disabled ? null : handleNavItemClick}
+                  onMouseEnter={item.disabled ? null : handleMouseEnter}
                 >
-                  {item}
+                  {item.name}
                 </a>
               ))}
             </div>
             <button
-              className="ml-10 flex items-center space-x-0.5 cursor-pointer p-3"
+              className="relative ml-10 flex items-center space-x-0.5 cursor-pointer p-3"
               onClick={toggleAudio}
             >
               <audio
@@ -104,10 +157,46 @@ const Navbar = () => {
                   style={{ animationDelay: `${bar * 0.1}s` }}
                 />
               ))}
+
+              <AnimatePresence initial={false}>
+                {audioControlToolTipVisibility ? (
+                  <motion.div
+                    key="box"
+                    initial={{ opacity: 0, scale: 0, right: 100 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0, right: 0 }}
+                    className="audio-control-container"
+                  >
+                    <div className="audio-control absolute px-5 py-2.5 text-lg top-10 rounded-2xl right-0 text-black backdrop-blur-xs flex flex-col justify-center items-center text-center font-general uppercase tracking-widest font-robert-medium">
+                      <FaVolumeUp />
+                      <span>Audio Control</span>
+                    </div>
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
             </button>
           </div>
         </nav>
       </header>
+      <audio
+        ref={hoverAudioRef}
+        className="hidden"
+        src="/audio/hover.wav"
+        volume="0.5"
+        preload="auto"
+      />
+      <audio
+        ref={selectAudioRef}
+        className="hidden"
+        src="/audio/select.wav"
+        volume="0.5"
+      />
+      <audio
+        ref={navigatingAudioRef}
+        className="hidden"
+        src="/audio/navigating.wav"
+        volume="0.5"
+      />
     </div>
   );
 };
